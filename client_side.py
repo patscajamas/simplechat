@@ -1,11 +1,11 @@
-import time
-from chat_gui1 import Login
+from Login_gui import Login
 import socket
 from threading import Thread
 from tkinter import *
 import json
 
 
+# initalize login window GUI and get login information
 login = Login()
 login_info = Login.get_login(login)
 HOST = login_info[0]
@@ -15,21 +15,24 @@ ADDRESS = (HOST, PORT)
 USER = login_info[2]
 chat_users = []
 
+# connect to server
 client_socket = socket.socket(socket.AF_INET,socket.SOCK_STREAM)
 client_socket.connect(ADDRESS)
 client_socket.send(bytes(USER, "utf8"))
 
+# define functions for message handeling 
 def receive():
     while True:
         try:
             message = client_socket.recv(BUFFERSIZE)
+            # look to see if message from server is normal 
+            # message or updated users list message
             try:
                 chat_users = json.loads(message.decode())
                 users_output.delete("1.0", END)
                 for user in chat_users:
                     users_output.insert(END, f"# {user}\n")
             except:
-                decoded_message = message.decode("utf8")
                 chat_output.insert(END, message)
         except OSError:
             break
@@ -46,10 +49,12 @@ def send(event=None):
         text_input.delete("1.0", END) 
         return "break"
 
+# define function for window closing event
 def on_closing(event=None):
     input_field.set("{quit}")
     send()
 
+# create main client GUI
 window = Tk()
 window.title('Dumbscord')
 window.geometry('850x800')
@@ -122,6 +127,7 @@ text_input.grid(sticky="nsew", padx=(5,10), pady=(5,10))
 text_input.bind("<Return>",send)
 window.protocol("WM_DELETE_WINDOW", on_closing)
 
+# start thread for listening to incoming server messages
 receive_thread = Thread(target=receive)
 receive_thread.start()
 window.mainloop() 
