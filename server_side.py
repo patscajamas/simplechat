@@ -20,6 +20,7 @@ def handle_client(client):
     client.send(bytes(welcome, "utf8"))
     message = f"{name} has joined the chat!\n"
     broadcast(bytes(message, "utf8"))
+    # sleep to clear send buffer so users list is its own seperate message
     time.sleep(0.500)
     clients[client] = name
     usernames.append(name)
@@ -31,22 +32,26 @@ def handle_client(client):
         if msg != bytes("{quit}", "utf8"):
             print(f"<{addresses[client]}><{name}>: {msg}")
             broadcast(msg, f"{name}: ")
+        # handle connection closing; either echo back or just connection
+        # already closed remove client from list
         else:
             try:
                 client.send(bytes("{quit}", "utf8"))
                 client.close()
                 del clients[client]
                 usernames.remove(name)
-                print(f"<{addresses[client]}><{name}> disconnected 1")
+                print(f"<{addresses[client]}><{name}> disconnected")
                 updated_data = json.dumps(usernames).encode("utf8")
                 user_broadcast(updated_data)
                 broadcast(bytes(f"{name} has left the chat.", "utf8"))
                 break
+            # client sometimes closes quicker than reply can happen, 
+            # handle exception
             except ConnectionResetError:
                 client.close()
                 del clients[client]
                 usernames.remove(name)
-                print(f"<{addresses[client]}><{name}> disconnected 2")
+                print(f"<{addresses[client]}><{name}> disconnected")
                 updated_data = json.dumps(usernames).encode("utf8")
                 user_broadcast(updated_data)
                 broadcast(bytes(f"{name} has left the chat.", "utf8"))
@@ -67,6 +72,7 @@ usernames = []
 clients = {}
 addresses = {}
 
+# define server ip and port in terminal on initalization; ip must be local IPv4
 HOST = sys.argv[1]
 PORT = int(sys.argv[2])
 BUFF = 1024
